@@ -1,0 +1,106 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:root {
+  @each $name, $value in $mocha {
+    --ctp-#{$name}: #{$value};
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: $text;
+  background: $bg;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  font-weight: 600;
+}
+
+.card {
+  padding: $pad;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius;
+}
+
+.label {
+  @include label;
+}
+
+.value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sub {
+  font-size: 0.85rem;
+  color: $muted;
+}
+
+.btn {
+  @include interactive;
+  padding: 6px 12px;
+  font: inherit;
+  color: $text;
+  background: transparent;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &.is-selected {
+    color: $bg;
+    background: $accent;
+    border-color: $accent;
+  }
+
+  &.is-today {
+    border-color: $accent;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+  color: $text;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &:focus {
+    outline: 2px solid $accent;
+    border-color: transparent;
+  }
+}
+
+.is-high {
+  color: $high;
+}
+
+.is-low {
+  color: $low;
+}
+
+.is-error {
+  color: c("red");
+}
+
+.footer {
+  font-size: 0.8rem;
+  text-align: center;
+  color: $faint;
+}

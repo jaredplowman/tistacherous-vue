@@ -1,0 +1,40 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.forecast {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: $gap;
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  &__days {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+
+    @include mobile {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &__day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+
+    // selected day uses the accent fill, so the temperature colours would vanish
+    &.is-selected > span {
+      color: $bg;
+    }
+  }
+
+  &__icon {
+    font-size: 1.5rem;
+  }
+}
