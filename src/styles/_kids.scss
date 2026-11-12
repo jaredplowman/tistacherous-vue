@@ -1,0 +1,405 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.kid-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $gap;
+
+    h3 {
+      font-size: 1.25rem;
+    }
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__streak {
+    font-size: 0.9rem;
+    color: $muted;
+  }
+
+  &__block {
+    display: grid;
+    gap: 6px;
+  }
+
+  &__strikes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 1.1rem;
+  }
+
+  &__goal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 14px;
+  }
+}
+
+.kid-card__today {
+  font-size: 1.05rem;
+  color: $muted;
+
+  strong {
+    color: $text;
+  }
+}
+
+.screen-gate {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &--unlocked {
+    background: color-mix(in srgb, #{c("green")} 12%, transparent);
+    border-color: color-mix(in srgb, #{c("green")} 45%, transparent);
+  }
+
+  &--locked {
+    background: color-mix(in srgb, #{c("red")} 12%, transparent);
+    border-color: color-mix(in srgb, #{c("red")} 45%, transparent);
+  }
+}
+
+.chores {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.chore {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  font: inherit;
+  color: $text;
+  text-align: left;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $surface-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &__box {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    font-weight: 700;
+    color: $bg;
+    border: 2px solid $muted;
+    border-radius: 7px;
+  }
+
+  &__value {
+    color: $muted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-done {
+    border-color: color-mix(in srgb, #{c("green")} 45%, transparent);
+
+    .chore__box {
+      background: c("green");
+      border-color: c("green");
+    }
+
+    .chore__title {
+      color: $muted;
+      text-decoration: line-through;
+    }
+  }
+}
+
+.busted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  color: c("red");
+  background: color-mix(in srgb, #{c("red")} 12%, transparent);
+  border-radius: $radius;
+}
+
+.progress {
+  height: 10px;
+  overflow: hidden;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: 999px;
+
+  &__bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ctp-mauve), var(--ctp-sapphire));
+    border-radius: 999px;
+    transition: width 0.3s;
+  }
+}
+
+.kid-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $gap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  overflow-x: auto;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 6px 16px;
+    font: inherit;
+    color: $muted;
+    white-space: nowrap;
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+
+    &:hover {
+      color: $text;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $accent;
+      outline-offset: 2px;
+    }
+
+    &.is-active {
+      color: $text;
+      background: $surface;
+    }
+  }
+
+  &__count {
+    min-width: 22px;
+    padding: 0 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 22px;
+    text-align: center;
+    color: $bg;
+    background: $high;
+    border-radius: 999px;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid $border;
+  }
+
+  th {
+    @include label;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  @include mobile {
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2px 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid $border;
+    }
+
+    td {
+      padding: 0;
+      border: 0;
+    }
+
+    td[data-label='When'] {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      color: $muted;
+    }
+
+    td[data-label='Kid'] {
+      color: $muted;
+    }
+
+    td[data-label='Chore'],
+    td[data-label='What'] {
+      grid-column: 1;
+    }
+
+    td.num {
+      grid-column: 2;
+      grid-row: 2 / span 2;
+      align-self: center;
+    }
+
+    .table__actions {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      padding-top: 8px;
+    }
+  }
+}
+
+.is-pos {
+  color: c("green");
+}
+
+.is-neg {
+  color: c("red");
+}
+
+.btn--pass {
+  color: c("green");
+
+  &:hover {
+    background: color-mix(in srgb, #{c("green")} 16%, transparent);
+  }
+}
+
+.ledger__filter {
+  max-width: 220px;
+}
+
+.account {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px $gap;
+  }
+
+  &__who {
+    display: grid;
+    gap: 2px;
+    flex: 1 1 140px;
+  }
+
+  &__money {
+    display: grid;
+    gap: 2px;
+    flex: 0 1 140px;
+  }
+
+  .kid-edit {
+    background: $bg;
+  }
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--avatar-size, 44px);
+  height: var(--avatar-size, 44px);
+  overflow: hidden;
+  font-weight: 700;
+  border-radius: 28%;
+
+  &--initial {
+    color: $bg;
+    background: $accent;
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}

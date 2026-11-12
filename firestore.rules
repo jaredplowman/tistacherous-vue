@@ -1,0 +1,165 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function memberPath() {
+      return /databases/$(database)/documents/households/main/members/$(myEmail());
+    }
+
+    function isMember() {
+      return signedIn() && exists(memberPath());
+    }
+
+    function isOwner() {
+      return isMember() && get(memberPath()).data.role == 'owner';
+    }
+
+    function validMember() {
+      return request.resource.data.keys().hasOnly(['displayName', 'role'])
+        && request.resource.data.displayName is string
+        && request.resource.data.role in ['owner', 'parent'];
+    }
+
+    function validLedgerEntry() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['kidId', 'timestamp', 'amount', 'reason', 'referenceId', 'notes', 'by'])
+        && d.keys().hasAll(['kidId', 'timestamp', 'amount', 'reason'])
+        && d.kidId is string
+        && d.timestamp is string
+        && d.amount is number
+        && d.reason in ['chore_completed', 'chore_undone', 'busted_penalty', 'bust_reverted', 'strike_penalty', 'payout', 'manual_adjustment'];
+    }
+
+    function validBill() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title', 'amount', 'dueDate', 'isAutopay', 'status', 'paymentDetails', 'category', 'recurringId', 'skipped', 'variableAmount'])
+        && d.keys().hasAll(['title', 'amount', 'dueDate', 'isAutopay', 'status'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 100
+        && d.amount is number && d.amount >= 0
+        && d.dueDate is string && d.dueDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && d.isAutopay is bool
+        && d.status in ['unpaid', 'pending', 'settled']
+        && d.get('category', 'other') in ['utility', 'housing', 'subscription', 'telecom', 'other']
+        && d.get('variableAmount', false) is bool;
+    }
+
+    function validRecurringBill() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title', 'amount', 'dueDay', 'isAutopay', 'category', 'active', 'variableAmount'])
+        && d.keys().hasAll(['title', 'amount', 'dueDay', 'isAutopay', 'category', 'active'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 100
+        && d.amount is number && d.amount >= 0
+        && d.dueDay is int && d.dueDay >= 1 && d.dueDay <= 31
+        && d.isAutopay is bool
+        && d.category in ['utility', 'housing', 'subscription', 'telecom', 'other']
+        && d.active is bool
+        && d.get('variableAmount', false) is bool;
+    }
+
+    function validTask() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title', 'notes', 'tier', 'priority', 'assignedTo', 'requiresBoth', 'targetDay', 'targetTime', 'targetDate', 'targetDisplay', 'active', 'isCompleted', 'completedAt', 'completedBy'])
+        && d.keys().hasAll(['title', 'tier', 'priority', 'assignedTo', 'requiresBoth', 'active', 'isCompleted'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 100
+        && d.get('notes', '') is string && d.get('notes', '').size() <= 500
+        && d.tier in ['weekly', 'short_term', 'long_term']
+        && d.priority in ['P1', 'P2', 'P3']
+        && d.assignedTo is list && d.assignedTo.size() <= 10
+        && d.requiresBoth is bool
+        && d.active is bool
+        && d.isCompleted is bool
+        && d.get('targetDay', 0) is int && d.get('targetDay', 0) >= 0 && d.get('targetDay', 0) <= 6
+        && d.get('targetTime', '') is string && d.get('targetTime', '').size() <= 40
+        && d.get('targetDisplay', '') is string && d.get('targetDisplay', '').size() <= 60
+        && d.get('targetDate', '2000-01-01').matches('[0-9]{4}-[0-9]{2}-[0-9]{2}');
+    }
+
+    function validTaskCompletion() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['taskId', 'weekStart', 'completedAt', 'completedBy'])
+        && d.keys().hasAll(['taskId', 'weekStart', 'completedAt', 'completedBy'])
+        && d.taskId is string
+        && d.weekStart is string && d.weekStart.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && d.completedAt is string
+        && d.completedBy is string;
+    }
+
+    function validInstanceChange() {
+      let before = resource.data.status;
+      let after = request.resource.data.status;
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.size() == 0
+        || (before == 'pending' && after == 'completed' && changed.hasOnly(['status', 'completedAt']))
+        || (before == 'completed' && after == 'pending' && changed.hasOnly(['status', 'completedAt']))
+        || (before == 'completed' && after in ['verified', 'busted'] && changed.hasOnly(['status', 'auditedAt', 'auditNotes', 'bustedAmount']))
+        || (before in ['verified', 'busted'] && after == 'completed' && changed.hasOnly(['status', 'auditedAt', 'auditNotes', 'bustedAmount']));
+    }
+
+    match /households/main {
+      allow read: if isMember();
+      allow write: if isOwner();
+
+      // The member documents are the allowlist: the document id is the lowercase email.
+      match /members/{email} {
+        // Anyone signed in may check their own membership; that is how the app decides what to show.
+        allow get: if signedIn() && email == myEmail();
+        allow list: if isMember();
+        allow create, update: if isOwner() && validMember();
+        allow delete: if isOwner() && email != myEmail();
+      }
+
+      // The ledger is append-only: entries can be added and read, never edited or deleted.
+      match /ledger/{id} {
+        allow read: if isMember();
+        allow create: if isMember() && validLedgerEntry();
+      }
+
+      // A chore instance may only move through the audit flow: pending <-> completed, then
+      // passed or busted. A parent can send an audited chore back to completed to re-audit it.
+      match /instances/{id} {
+        allow read, delete: if isMember();
+        allow create: if isMember() && request.resource.data.status == 'pending';
+        allow update: if isMember() && validInstanceChange();
+      }
+
+      // One bill for one due date; recurring bills generate a new one each month.
+      match /bills/{id} {
+        allow read, delete: if isMember();
+        allow create, update: if isMember() && validBill();
+      }
+
+      match /recurringBills/{id} {
+        allow read, delete: if isMember();
+        allow create, update: if isMember() && validRecurringBill();
+      }
+
+      // Adult tasks. Weekly routines are never marked done on the task itself; each week's
+      // completion is its own document, named `${weekStart}_${taskId}`.
+      match /tasks/{id} {
+        allow read, delete: if isMember();
+        allow create, update: if isMember() && validTask();
+      }
+
+      match /taskCompletions/{id} {
+        allow read, delete: if isMember();
+        allow create, update: if isMember() && validTaskCompletion();
+      }
+
+      // Everything else in the household (kids, chores...) is open to members.
+      // Tighten per collection as the modules land.
+      match /{collection}/{id} {
+        allow read, write: if isMember()
+          && !(collection in ['members', 'ledger', 'instances', 'bills', 'recurringBills', 'tasks', 'taskCompletions']);
+      }
+    }
+  }
+}

@@ -1,0 +1,97 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+button.chip {
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.prio {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+
+  &--P1 {
+    color: c('red');
+  }
+
+  &--P2 {
+    color: c('yellow');
+  }
+
+  &--P3 {
+    color: $muted;
+  }
+}
+
+.task__notes {
+  display: block;
+}
+
+.task-summary {
+  padding-top: 4px;
+  border-top: 1px solid $border;
+}
+
+.table.table--tasks {
+  tr.is-done td[data-label='Task'] strong {
+    color: $muted;
+    text-decoration: line-through;
+  }
+
+  tr.is-paused {
+    opacity: 0.7;
+  }
+
+  .table__form td {
+    padding: 8px 0 12px;
+  }
+
+  @include mobile {
+    td[data-label='Priority'],
+    td[data-label='Status'] {
+      grid-column: 2;
+      justify-self: end;
+    }
+
+    td[data-label='Priority'] {
+      grid-row: 1;
+    }
+
+    td[data-label='Task'] {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+
+    td[data-label='Status'] {
+      grid-row: 2;
+    }
+
+    td[data-label='Assignee'],
+    td[data-label='Target'],
+    td[data-label='Team'] {
+      grid-column: 1 / -1;
+      font-size: 0.85rem;
+      color: $muted;
+    }
+
+    td[data-label='Target'].is-neg {
+      color: c('red');
+    }
+
+    .table__actions {
+      padding-top: 4px;
+    }
+
+    .table__form {
+      display: block;
+      padding: 0;
+    }
+  }
+}

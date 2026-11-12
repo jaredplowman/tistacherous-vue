@@ -1,0 +1,227 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:root {
+  @each $name, $value in $mocha {
+    --ctp-#{$name}: #{$value};
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: $text;
+  background: $bg;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+}
+
+.card {
+  padding: $pad;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius;
+}
+
+.label {
+  @include label;
+}
+
+.value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sub {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: $muted;
+}
+
+.btn {
+  @include interactive;
+  display: inline-block;
+  padding: 6px 12px;
+  text-align: center;
+  text-decoration: none;
+  font: inherit;
+  color: $text;
+  background: transparent;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &.is-selected {
+    color: $bg;
+    background: $accent;
+    border-color: $accent;
+  }
+
+  &.is-today {
+    border-color: $accent;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+  color: $text;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &:focus {
+    outline: 2px solid $accent;
+    border-color: transparent;
+  }
+}
+
+.is-high {
+  color: $high;
+}
+
+.is-low {
+  color: $low;
+}
+
+.is-error {
+  color: c("red");
+}
+
+.btn--accent {
+  color: $bg;
+  background: $accent;
+  border-color: $accent;
+
+  &:hover {
+    color: $bg;
+    background: c("lavender");
+    border-color: c("lavender");
+  }
+}
+
+.btn--danger {
+  color: c("red");
+
+  &:hover {
+    background: color-mix(in srgb, #{c("red")} 16%, transparent);
+  }
+}
+
+.btn--danger-solid {
+  color: $bg;
+  background: c("red");
+  border-color: c("red");
+
+  &:hover {
+    color: $bg;
+    background: c("maroon");
+    border-color: c("maroon");
+  }
+}
+
+.btn--small {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+
+  > span {
+    @include label;
+  }
+}
+
+select.input {
+  appearance: none;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, #{c("subtext0")} 50%),
+    linear-gradient(135deg, #{c("subtext0")} 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $muted;
+  border: 1px solid $border;
+  border-radius: 999px;
+
+  &--accent {
+    color: $accent;
+    border-color: color-mix(in srgb, #{$accent} 50%, transparent);
+  }
+}
+
+.empty {
+  padding: 20px 0;
+  text-align: center;
+}
+
+.dialog {
+  margin: auto;
+  width: calc(100% - 32px);
+  max-width: 440px;
+  padding: 24px;
+  color: $text;
+
+  &[open] {
+    display: grid;
+    gap: 14px;
+  }
+
+  &::backdrop {
+    background: rgb(17 17 27 / 0.72);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__details {
+    display: grid;
+    gap: 4px;
+    padding: 10px 14px;
+    list-style: none;
+    font-size: 0.9rem;
+    background: $bg-deep;
+    border-radius: $radius;
+  }
+}

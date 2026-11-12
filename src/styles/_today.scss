@@ -1,0 +1,101 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.today {
+  &__greeting {
+    display: grid;
+    gap: 2px;
+  }
+
+  &__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $gap;
+
+    @include mobile {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__amount {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.panel__head.panel__head--row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weather-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  color: $text;
+  text-decoration: none;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 999px;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: $accent;
+  }
+
+  &__icon {
+    font-size: 1.2rem;
+  }
+
+  &__place {
+    color: $muted;
+  }
+}
+
+.attention {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 0.92rem;
+    color: $text;
+    text-decoration: none;
+    background: $bg-deep;
+    border: 1px solid $border;
+    border-left-width: 4px;
+    border-radius: $radius;
+
+    &:hover {
+      background: $surface-hover;
+    }
+
+    &--bad {
+      border-left-color: c('red');
+    }
+
+    &--warn {
+      border-left-color: $high;
+    }
+
+    &--info {
+      border-left-color: $low;
+    }
+  }
+}

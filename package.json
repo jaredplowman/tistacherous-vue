@@ -1,46 +1,29 @@
 {
   "name": "tistacherous-vue",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project rules-test \"vitest run --config rules/vitest.config.ts\"",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^2.5.21"
+    "firebase": "^13.3.0",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.0",
+    "vue-router": "^5.5.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.3.0",
-    "@vue/cli-plugin-eslint": "^3.3.0",
-    "@vue/cli-service": "^3.3.0",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.8.0",
-    "eslint-plugin-vue": "^5.0.0",
-    "vue-template-compiler": "^2.5.21"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "rules": {},
-    "parserOptions": {
-      "parser": "babel-eslint"
-    }
-  },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {}
-    }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not ie <= 8"
-  ]
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "sass": "^1.108.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14"
+  }
 }

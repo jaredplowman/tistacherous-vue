@@ -1,0 +1,17 @@
+@use 'sass:meta';
+@use '../../../styles/variables' as *;
+
+// Everything is nested under .weather so the generic class names used here
+// (.page, .grid, .row, .dot...) cannot leak into other modules.
+.weather {
+  @include meta.load-css('layout');
+  @include meta.load-css('forecast');
+  @include meta.load-css('calendar');
+  @include meta.load-css('chart');
+
+  .footer {
+    font-size: 0.8rem;
+    text-align: center;
+    color: $faint;
+  }
+}

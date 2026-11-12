@@ -1,0 +1,36 @@
+@use 'variables' as *;
+
+@mixin mobile {
+  @media (max-width: $bp-mobile) {
+    @content;
+  }
+}
+
+// Narrow tablets up to the desktop breakpoint: the sidebar collapses to an icon rail.
+@mixin tablet {
+  @media (min-width: #{$bp-mobile + 1}) and (max-width: #{$bp-desktop - 1}) {
+    @content;
+  }
+}
+
+@mixin label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $muted;
+}
+
+@mixin interactive {
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: $surface-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+}
