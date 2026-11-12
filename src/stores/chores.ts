@@ -67,10 +67,31 @@ export const useChoresStore = defineStore('chores', () => {
   const windowStart = computed(() => addDays(today.value, -STREAK_WINDOW_DAYS))
 
   const onError = (e: Error) => (error.value = errorMessage(e))
-
   const sortedChores = computed(() => sortChores(chores.value))
 
-  const board = computed<KidBoardEntry[]>(() =>
+  async function ensureDate(date: string) {
+    if (!started.value || !choresLoaded.value || !instancesSynced.value || generating) return
+    const missing = missingInstances(
+      chores.value,
+      household.kids.map((k) => k.id),
+      new Set(instances.value.map((i) => i.id)),
+      date,
+    )
+    if (!missing.length) return
+
+    generating = true
+    try {
+      const batch = writeBatch(db)
+      for (const { id, ...data } of missing) batch.set(householdDoc('instances', id), data)
+      await batch.commit()
+    } catch (e) {
+      error.value = errorMessage(e)
+    } finally {
+      generating = false
+    }
+  }
+
+  const boardForDate = (date: string): KidBoardEntry[] =>
     household.kids.map((kid) => {
       const mine = visibleInstances(
         instances.value.filter((i) => i.kidId === kid.id),
@@ -78,7 +99,7 @@ export const useChoresStore = defineStore('chores', () => {
         kid.id,
       )
       const todays = sortInstances(
-        mine.filter((i) => i.date === today.value),
+        mine.filter((i) => i.date === date),
         chores.value,
       )
       return {
@@ -88,8 +109,9 @@ export const useChoresStore = defineStore('chores', () => {
         screen: screenStatus(todays),
         ...dayTotals(todays),
       }
-    }),
-  )
+    })
+
+  const board = computed(() => boardForDate(today.value))
 
   const auditQueue = computed(() =>
     pendingAudit(instances.value, new Set(household.kids.map((k) => k.id))),
@@ -146,25 +168,7 @@ export const useChoresStore = defineStore('chores', () => {
 
   // No Cloud Functions: whichever device is open first each day creates that day's chores.
   async function ensureToday() {
-    if (!started.value || !choresLoaded.value || !instancesSynced.value || generating) return
-    const missing = missingInstances(
-      chores.value,
-      household.kids.map((k) => k.id),
-      new Set(instances.value.map((i) => i.id)),
-      today.value,
-    )
-    if (!missing.length) return
-
-    generating = true
-    try {
-      const batch = writeBatch(db)
-      for (const { id, ...data } of missing) batch.set(householdDoc('instances', id), data)
-      await batch.commit()
-    } catch (e) {
-      error.value = errorMessage(e)
-    } finally {
-      generating = false
-    }
+    await ensureDate(today.value)
   }
 
   watch([chores, () => household.kids, instances, instancesSynced, started, today], ensureToday)
@@ -222,9 +226,12 @@ export const useChoresStore = defineStore('chores', () => {
     chores: sortedChores,
     instances,
     board,
+    boardForDate,
+    ensureDate,
     auditQueue,
     recentAudits,
     today,
+    windowStart,
     error,
     start,
     stop,

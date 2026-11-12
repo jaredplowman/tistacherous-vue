@@ -26,3 +26,18 @@ export const daysBetween = (from: string, to: string) => Math.round((toUtc(to) -
 
 export const addDays = (key: string, days: number) =>
   new Date(toUtc(key) + days * 86_400_000).toISOString().slice(0, 10)
+
+export function formatRelativeDay(dateKey: string, todayKey: string): string {
+  const diff = daysBetween(todayKey, dateKey)
+  if (diff === 0) return 'Today'
+  if (diff === -1) return 'Yesterday'
+  return new Date(toUtc(dateKey)).toLocaleDateString('en-CA', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+export const canStepPrev = (dateKey: string, windowStart: string) => dateKey > windowStart
+export const canStepNext = (dateKey: string, todayKey: string) => dateKey < todayKey

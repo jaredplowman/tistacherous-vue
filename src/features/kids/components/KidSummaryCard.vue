@@ -4,16 +4,30 @@ import { RouterLink } from 'vue-router'
 import { bustedDeduction } from '@/domain/chores'
 import { formatClock, formatMoney, goalProgress } from '@/domain/kids'
 import type { DailyChoreInstance } from '@/domain/types'
-import type { KidBoardEntry } from '@/stores/chores'
+import { useChoresStore, type KidBoardEntry } from '@/stores/chores'
 import KidAvatar from './KidAvatar.vue'
 
-const props = defineProps<{ entry: KidBoardEntry; interactive?: boolean; large?: boolean; manage?: boolean }>()
-const emit = defineEmits<{ toggle: [instance: DailyChoreInstance]; strike: []; unbust: [instance: DailyChoreInstance] }>()
+const props = defineProps<{ 
+  entry: KidBoardEntry; 
+  interactive?: boolean; 
+  large?: boolean; 
+  manage?: boolean; 
+  date?: string;
+}>()
+const emit = defineEmits<{ 
+  toggle: [instance: DailyChoreInstance]; 
+  strike: []; 
+  unbust: [instance: DailyChoreInstance];
+  reopen: [instance: DailyChoreInstance];
+}>()
 
 // Wall displays are read from across the room, so the picture is bigger there.
 const avatarSize = computed(() => (props.large ? 64 : 44))
 
 const kid = computed(() => props.entry.kid)
+const isToday = computed(() => !props.date || props.date === useChoresStore().today)
+const date = computed(() => props.date ?? useChoresStore().today)
+
 const progress = computed(() => goalProgress(kid.value.goal))
 const strikes = computed(() =>
   Array.from({ length: kid.value.troubleMeter.maxStrikes }, (_, i) => i < kid.value.troubleMeter.currentStrikes),
@@ -44,7 +58,7 @@ const canToggle = (chore: DailyChoreInstance) =>
     </header>
 
     <p class="kid-card__today">
-      Today: <strong>{{ formatMoney(entry.earned) }}</strong> / {{ formatMoney(entry.possible) }}
+      {{ isToday ? 'Today' : date }}: <strong>{{ formatMoney(entry.earned) }}</strong> / {{ formatMoney(entry.possible) }}
     </p>
 
     <div class="kid-card__block">
@@ -89,7 +103,7 @@ const canToggle = (chore: DailyChoreInstance) =>
     </div>
 
     <div class="kid-card__block">
-      <p class="label">Today's chores</p>
+      <p class="label">{{ isToday ? "Today's chores" : `Chores for ${date}` }}</p>
       <ul v-if="open.length" class="chores">
         <li v-for="chore in open" :key="chore.id">
           <button
@@ -103,6 +117,9 @@ const canToggle = (chore: DailyChoreInstance) =>
             <span class="chore__box" aria-hidden="true">{{ chore.status !== 'pending' ? '✓' : '' }}</span>
             <span class="chore__title">{{ chore.title }}</span>
             <span class="chore__value">{{ formatMoney(chore.value) }}</span>
+          </button>
+          <button v-if="manage && chore.status === 'verified'" class="btn btn--small" type="button" @click="emit('reopen', chore)">
+            Reopen
           </button>
         </li>
       </ul>

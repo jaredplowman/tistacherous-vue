@@ -7,11 +7,12 @@ import KidSummaryCard from '@/features/kids/components/KidSummaryCard.vue'
 import AuditQueue from '@/features/kids/components/AuditQueue.vue'
 import RecentAudits from '@/features/kids/components/RecentAudits.vue'
 import { requestStrike } from '@/features/kids/strike'
-import { requestUndoBust } from '@/features/kids/audit'
+import { requestReopen, requestUndoBust } from '@/features/kids/audit'
 import { useLedgerStore } from '@/stores/ledger'
 import AccountsPanel from '@/features/kids/components/AccountsPanel.vue'
 import LedgerPanel from '@/features/kids/components/LedgerPanel.vue'
 import ChoresPanel from '@/features/kids/components/ChoresPanel.vue'
+import DayNav from '@/features/kids/components/DayNav.vue'
 
 const TABS = ['board', 'audits', 'ledger', 'chores'] as const
 type Tab = (typeof TABS)[number]
@@ -26,6 +27,11 @@ const tab = computed<Tab>(() => {
   const requested = route.query.tab
   return TABS.find((t) => t === requested) ?? 'board'
 })
+
+const selectedDate = computed(() => (route.query.date as string) ?? chores.today)
+
+const onDateSelect = (date: string) =>
+  router.replace({ query: { ...route.query, date: date === chores.today ? undefined : date } })
 
 const tabs = computed(() => [
   { id: 'board' as const, label: 'Board' },
@@ -64,20 +70,32 @@ const select = (id: Tab) => router.replace({ query: id === 'board' ? {} : { tab:
 
     <section v-if="tab === 'board'" class="panel" aria-labelledby="board-title">
       <div class="panel__head">
-        <h2 id="board-title">Today's board</h2>
-        <p class="sub">You can tick chores off here too.</p>
+        <h2 id="board-title">Board</h2>
+        <DayNav :selected="selectedDate" @select="onDateSelect" />
       </div>
+
+      <div v-if="selectedDate !== chores.today" class="card is-info">
+        <p>Viewing chores for {{ selectedDate }}. You can check off or modify chores here.</p>
+        <button class="btn btn--small" type="button" @click="onDateSelect(chores.today)">Return to Today</button>
+      </div>
+
       <div v-if="household.kids.length" class="kid-grid">
         <KidSummaryCard
-          v-for="entry in chores.board"
+          v-for="entry in chores.boardForDate(selectedDate)"
           :key="entry.kid.id"
           :entry="entry"
+          :date="selectedDate"
           interactive
           manage
           @toggle="chores.toggleInstance"
           @strike="requestStrike(entry.kid)"
           @unbust="requestUndoBust"
+          @reopen="requestReopen"
         />
+      </div>
+      <div v-else-if="selectedDate !== chores.today" class="card empty">
+        <p>No chores were recorded for this date.</p>
+        <button class="btn" type="button" @click="chores.ensureDate(selectedDate)">Generate scheduled chores</button>
       </div>
       <div v-else class="card empty">
         <p class="sub">No kids yet. <RouterLink to="/settings">Add them in Settings</RouterLink>.</p>
