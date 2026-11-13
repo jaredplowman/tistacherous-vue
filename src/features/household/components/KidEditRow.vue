@@ -15,6 +15,8 @@ const maxStrikes = ref(props.kid.troubleMeter.maxStrikes)
 const penalty = ref(props.kid.troubleMeter.penaltyAmount)
 const cutoff = ref(props.kid.screenTimeCutoff)
 const avatar = ref(props.kid.avatarUrl ?? '')
+const cardColor = ref(props.kid.cardColor ?? '')
+const nameColor = ref(props.kid.nameColor ?? '')
 const goalTitle = ref(props.kid.goal.title)
 const goalTarget = ref(props.kid.goal.targetAmount)
 const goalImage = ref(props.kid.goal.imageUrl)
@@ -30,6 +32,8 @@ watch(
     () => props.kid.troubleMeter.penaltyAmount,
     () => props.kid.screenTimeCutoff,
     () => props.kid.avatarUrl,
+    () => props.kid.cardColor,
+    () => props.kid.nameColor,
     () => props.kid.goal.title,
     () => props.kid.goal.targetAmount,
     () => props.kid.goal.imageUrl,
@@ -41,6 +45,8 @@ watch(
     penalty.value = kid.troubleMeter.penaltyAmount
     cutoff.value = kid.screenTimeCutoff
     avatar.value = kid.avatarUrl ?? ''
+    cardColor.value = kid.cardColor ?? ''
+    nameColor.value = kid.nameColor ?? ''
     goalTitle.value = kid.goal.title
     goalTarget.value = kid.goal.targetAmount
     goalImage.value = kid.goal.imageUrl
@@ -68,6 +74,8 @@ const save = () =>
       name: name.value.trim(),
       screenTimeCutoff: cutoff.value,
       avatarUrl: avatar.value,
+      cardColor: cardColor.value,
+      nameColor: nameColor.value,
       'troubleMeter.maxStrikes': Math.max(1, Math.round(maxStrikes.value)),
       'troubleMeter.penaltyAmount': Math.max(0, penalty.value),
       'goal.title': goalTitle.value.trim(),
@@ -109,6 +117,27 @@ async function remove() {
     </div>
 
     <PictureField v-model="avatar" label="Picture" />
+
+    <div class="form-row">
+      <label class="field">
+        <span>Card background</span>
+        <span class="color-field">
+          <input v-model="cardColor" class="color-field__swatch" type="color" />
+          <button v-if="cardColor" class="btn btn--small" type="button" @click="cardColor = ''">Default</button>
+          <span v-else class="sub">Default</span>
+        </span>
+      </label>
+      <label class="field">
+        <span>Name colour</span>
+        <span class="color-field">
+          <input v-model="nameColor" class="color-field__swatch" type="color" />
+          <button v-if="nameColor" class="btn btn--small" type="button" @click="nameColor = ''">Default</button>
+          <span v-else class="sub">Automatic</span>
+        </span>
+      </label>
+    </div>
+    <p v-if="cardColor" class="sub">Other text on the card switches between dark and light automatically so it stays readable.</p>
+
 
     <div class="form-row">
       <label class="field">

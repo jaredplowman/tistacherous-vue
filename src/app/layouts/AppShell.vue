@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { member, signOutUser } from '@/lib/auth'
-import { BRAND_MARK, BRAND_NAME } from '../brand'
 import { badgeLabel, useNavBadges } from '../badges'
 import { isActive, primaryNav, secondaryNav } from '../nav'
 import { openKioskDialog } from '../kiosk'
@@ -27,11 +26,6 @@ function launchKiosk() {
 <template>
   <div class="shell">
     <aside class="sidebar">
-      <RouterLink class="brand" to="/">
-        <span class="brand__mark" aria-hidden="true">{{ BRAND_MARK }}</span>
-        <span class="brand__name">{{ BRAND_NAME }}</span>
-      </RouterLink>
-
       <nav class="sidebar__nav" aria-label="Main navigation">
         <RouterLink
           v-for="item in primaryNav"

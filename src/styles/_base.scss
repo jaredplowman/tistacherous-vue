@@ -16,6 +16,14 @@ html {
   scroll-behavior: smooth;
 }
 
+// Phones in portrait (high-DPI, narrow; tablets are wider than this) get a smaller root size,
+// which scales everything sized in rem.
+@media (max-width: 600px) and (orientation: portrait) and (min-resolution: 2dppx) {
+  html {
+    font-size: 87.5%;
+  }
+}
+
 body {
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;

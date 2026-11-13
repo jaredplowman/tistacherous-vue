@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isMember() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && firestore.exists(/databases/(default)/documents/households/main/members/$(request.auth.token.email.lower()));
+    }
+
+    match /households/main/benefits/{claimId}/{fileName} {
+      allow read: if isMember();
+      allow write: if isMember()
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+      allow delete: if isMember();
+    }
+  }
+}

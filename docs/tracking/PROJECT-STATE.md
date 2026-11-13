@@ -38,12 +38,13 @@ are built and deployed.
 - Access is decided by member docs at `households/main/members/{lowercase email}` (`role`: owner|parent),
   enforced by `firestore.rules`.
 - Navigation: desktop sidebar, tablet icon rail, phone bottom tabs.
-  Routes: `/`, `/kids` (tabs via `?tab=`: board, audits, ledger, chores), `/bills`, `/tasks`, `/weather`,
-  `/settings`, `/kiosk`.
+  Routes: `/`, `/kids` (tabs via `?tab=`: board, audits, balances, ledger, chores), `/bills`, `/tasks`, `/benefits`,
+  `/weather`, `/settings`, `/kiosk`.
 - Chores:
   - Pass sets `verified`. Busted deducts value x `penaltyMultiplier`, clamped at the balance.
   - Strike, payout and adjust use `runTransaction`. Check-off is a batch and works offline.
   - The ledger is append-only. Instance status transitions are enforced in the rules.
+- Benefits (`/benefits`, `src/stores/benefits.ts`, `src/domain/benefits.ts`): tracks claims, status (`draft`, `submitted_primary`, `denied_primary`, `submitted_secondary`, `denied_secondary`, `paid`, `closed`), primary/secondary plan amounts, notes, and PDFs (receipt, primary response, secondary response) stored in Firebase Storage (`src/lib/storage.ts`, `storage.rules`). Firebase AI Logic (`src/lib/benefitAi.ts`, `GoogleAIBackend`, `gemini-3.8-flash`) scans uploaded PDFs (including scanned images) to auto-fill claim details and detect/prompt for caregivers and care types ($500 default yearly budget per adult member), with `pdfjs-dist` (`src/lib/pdfText.ts`) as a local fallback. Requires `firebase deploy --only storage` (or full `firebase deploy`) for `storage.rules`.
 - Phase 6: icons and manifest in `public/`, `public/sw.js` (cache `plowman-shell-v1`, production only), kiosk wake lock
   in `src/lib/wakeLock.ts`, export-only backup in Settings, rules tests in `rules/`, Firebase chunk split in
   `vite.config.ts`.
@@ -59,8 +60,10 @@ are built and deployed.
   - `reopenAudit` moves verified -> `completed` with no money moving.
   - UI: Kids -> Audits -> "Recently audited" (`RecentAudits.vue`, last 7 days) and an Undo link on the board's
     BUSTED line. Helpers: `src/features/kids/audit.ts`, `src/features/kids/strike.ts`.
-- Strike: "Add strike" on board cards (`KidSummaryCard` `manage` prop, KidsView only) and in Kids -> Audits ->
-  Accounts. Penalty and strikes-to-fill are per kid in Settings -> Kids.
+- Strike: "Add strike" on board cards (`KidSummaryCard` `manage` prop, KidsView only) and in Kids -> Balances. Penalty and strikes-to-fill are per kid in Settings -> Kids.
+- Strike meter: empty slots are faded grey ⚠️ (not ⚪), filled ones full colour.
+- Kid colours: Settings -> Kids sets `cardColor` (card background) and `nameColor` on the kid doc (no rules change; kids are open to members). `src/domain/color.ts` (tested) picks dark/light text by WCAG contrast; a name colour under 3:1 on the card is ignored. Unchecked live: set colours, view Board and kiosk.
+- Kiosk emoji burst: tapping a pending chore on the kiosk (`large` card only) triggers `makeBurst` emoji explosion (`src/domain/burst.ts`, 1.8 s). Progress bar gain popup (`spark-gain`) runs 1.9 s.
 - Goals: Settings -> Kids (`KidEditRow.vue`) edits goal title, target and picture. The board shows a "Set a goal"
   link when none. The saved balance is not editable there. The form only reloads when an edited field changes.
 - Ordering: `ChoreDefinition.sortOrder?` with `sortChores`, `moveChore`, `nextSortOrder`, `sortInstances`.

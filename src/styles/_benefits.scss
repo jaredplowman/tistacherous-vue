@@ -1,0 +1,198 @@
+@use 'variables' as *;
+
+.benefit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.benefit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.benefit-search {
+  max-width: 260px;
+}
+
+.benefit-form {
+  display: grid;
+  gap: 14px;
+
+  &__pdfs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  &__caregiver-row {
+    display: flex;
+    gap: 8px;
+
+    .input {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__coverage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: $bg-deep;
+    border: 1px solid $border;
+    border-radius: $radius;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}
+
+.benefit-caregiver-prompt {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: $bg-deep;
+  border: 1px solid $accent;
+  border-radius: $radius;
+}
+
+.pdf-field {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  &__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__link {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.88rem;
+  }
+}
+
+.benefit-card {
+  display: grid;
+  gap: 8px;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__pdfs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__notes {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
+.benefit-budgets {
+  display: grid;
+  gap: $gap;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: $gap;
+}
+
+.budget-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+}
+
+.budget-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-item {
+  display: grid;
+  gap: 6px;
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__limit {
+    width: 72px;
+    padding: 2px 6px;
+    font: inherit;
+    color: $text;
+    background: $surface;
+    border: 1px solid $border;
+    border-radius: 6px;
+  }
+}
+
+.badge--good {
+  color: c("green");
+  border-color: color-mix(in srgb, #{c("green")} 45%, transparent);
+}
+
+.badge--warn {
+  color: c("yellow");
+  border-color: color-mix(in srgb, #{c("yellow")} 45%, transparent);
+}
+
+.badge--bad {
+  color: c("red");
+  border-color: color-mix(in srgb, #{c("red")} 45%, transparent);
+}
+
+.badge--neutral {
+  color: $muted;
+}

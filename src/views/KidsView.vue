@@ -14,7 +14,7 @@ import LedgerPanel from '@/features/kids/components/LedgerPanel.vue'
 import ChoresPanel from '@/features/kids/components/ChoresPanel.vue'
 import DayNav from '@/features/kids/components/DayNav.vue'
 
-const TABS = ['board', 'audits', 'ledger', 'chores'] as const
+const TABS = ['board', 'audits', 'balances', 'ledger', 'chores'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -36,6 +36,7 @@ const onDateSelect = (date: string) =>
 const tabs = computed(() => [
   { id: 'board' as const, label: 'Board' },
   { id: 'audits' as const, label: 'Audits', count: chores.auditQueue.length },
+  { id: 'balances' as const, label: 'Balances' },
   { id: 'ledger' as const, label: 'Ledger' },
   { id: 'chores' as const, label: 'Chores' },
 ])
@@ -68,9 +69,8 @@ const select = (id: Tab) => router.replace({ query: id === 'board' ? {} : { tab:
     <p v-if="chores.error" class="card is-error">{{ chores.error }}</p>
     <p v-if="ledger.error && tab === 'board'" class="card is-error">{{ ledger.error }}</p>
 
-    <section v-if="tab === 'board'" class="panel" aria-labelledby="board-title">
+    <section v-if="tab === 'board'" class="panel" aria-label="Kids board">
       <div class="panel__head">
-        <h2 id="board-title">Board</h2>
         <DayNav :selected="selectedDate" @select="onDateSelect" />
       </div>
 
@@ -105,8 +105,9 @@ const select = (id: Tab) => router.replace({ query: id === 'board' ? {} : { tab:
     <template v-else-if="tab === 'audits'">
       <AuditQueue />
       <RecentAudits />
-      <AccountsPanel />
     </template>
+
+    <AccountsPanel v-else-if="tab === 'balances'" />
 
     <LedgerPanel v-else-if="tab === 'ledger'" />
     <ChoresPanel v-else />

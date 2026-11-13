@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { bustedDeduction } from '@/domain/chores'
+import { kidPalette } from '@/domain/color'
+import { makeBurst, type BurstParticle } from '@/domain/burst'
 import { formatClock, formatMoney, goalProgress } from '@/domain/kids'
 import type { DailyChoreInstance } from '@/domain/types'
 import { useChoresStore, type KidBoardEntry } from '@/stores/chores'
@@ -29,6 +31,7 @@ const isToday = computed(() => !props.date || props.date === useChoresStore().to
 const date = computed(() => props.date ?? useChoresStore().today)
 
 const progress = computed(() => goalProgress(kid.value.goal))
+const palette = computed(() => kidPalette(kid.value.cardColor, kid.value.nameColor))
 const strikes = computed(() =>
   Array.from({ length: kid.value.troubleMeter.maxStrikes }, (_, i) => i < kid.value.troubleMeter.currentStrikes),
 )
@@ -42,44 +45,120 @@ const taken = (chore: DailyChoreInstance) => chore.bustedAmount ?? bustedDeducti
 
 const canToggle = (chore: DailyChoreInstance) =>
   !!props.interactive && (chore.status === 'pending' || chore.status === 'completed')
+
+// Kiosk (`large`) plays an emoji burst when a pending chore is tapped.
+const BURST_MS = 2100
+const bursts = ref<{ id: number; x: number; y: number; particles: BurstParticle[] }[]>([])
+let burstId = 0
+
+function onChoreClick(chore: DailyChoreInstance, event: MouseEvent) {
+  if (props.large && chore.status === 'pending') {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    const id = ++burstId
+    bursts.value.push({ id, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, particles: makeBurst() })
+    setTimeout(() => (bursts.value = bursts.value.filter((b) => b.id !== id)), BURST_MS)
+  }
+  emit('toggle', chore)
+}
+
+const sparkKey = ref(0)
+const sparkActive = ref(false)
+const sparkGain = ref(0)
+let sparkTimer: ReturnType<typeof setTimeout> | undefined
+
+// Celebrate when savings increase (e.g. a chore is checked off), not on undo/bust.
+watch(
+  () => [kid.value.id, kid.value.goal.currentSaved] as const,
+  ([id, saved], [prevId, prevSaved]) => {
+    if (id !== prevId || saved <= prevSaved) return
+    sparkGain.value = saved - prevSaved
+    sparkKey.value += 1
+    sparkActive.value = true
+    clearTimeout(sparkTimer)
+    sparkTimer = setTimeout(() => {
+      sparkActive.value = false
+    }, 1950)
+  },
+)
+
+onUnmounted(() => clearTimeout(sparkTimer))
 </script>
 
 <template>
-  <article class="card kid-card">
+  <article
+    class="card kid-card"
+    :class="{ 'is-themed': palette }"
+    :style="palette ? { '--kid-bg': palette.background, '--kid-fg': palette.text, '--kid-name': palette.name } : undefined"
+  >
     <header class="kid-card__head">
-      <h3 class="kid-card__name">
+      <div class="kid-card__identity">
         <KidAvatar :kid="kid" :size="avatarSize" />
-        {{ kid.name }}
-      </h3>
-      <span class="kid-card__streak">
-        {{ entry.streak > 0 ? '🔥' : '❄️' }} {{ entry.streak }} {{ entry.streak === 1 ? 'day' : 'days' }}
-        <template v-if="busted.length">(busted today)</template>
-      </span>
-    </header>
-
-    <p class="kid-card__today">
-      {{ isToday ? 'Today' : date }}: <strong>{{ formatMoney(entry.earned) }}</strong> / {{ formatMoney(entry.possible) }}
-    </p>
-
-    <div class="kid-card__block">
-      <p class="label">Trouble meter</p>
-      <p class="kid-card__strikes" :aria-label="`${kid.troubleMeter.currentStrikes} of ${kid.troubleMeter.maxStrikes} strikes`">
-        <span v-for="(filled, i) in strikes" :key="i" aria-hidden="true">{{ filled ? '⚠️' : '⚪' }}</span>
-        <span class="sub">({{ kid.troubleMeter.currentStrikes }}/{{ kid.troubleMeter.maxStrikes }})</span>
-      </p>
-      <p class="sub">{{ kid.troubleMeter.maxStrikes }} strikes = -{{ formatMoney(kid.troubleMeter.penaltyAmount) }} from goal</p>
-      <div v-if="manage">
-        <button class="btn btn--small" type="button" @click="emit('strike')">Add strike</button>
+        <div class="kid-card__title">
+          <h3 class="kid-card__name">{{ kid.name }}</h3>
+          <div class="kid-card__strike-row">
+            <p class="kid-card__strikes" :aria-label="`${kid.troubleMeter.currentStrikes} of ${kid.troubleMeter.maxStrikes} strikes`">
+              <span
+                v-for="(filled, i) in strikes"
+                :key="i"
+                class="kid-card__strike"
+                :class="{ 'is-empty': !filled }"
+                aria-hidden="true"
+              >⚠️</span>
+            </p>
+            <button v-if="manage" class="btn btn--small" type="button" @click="emit('strike')">Add strike</button>
+          </div>
+        </div>
       </div>
-    </div>
+      <div class="kid-card__meta">
+        <span class="kid-card__streak">
+          {{ entry.streak > 0 ? '🔥' : '❄️' }} {{ entry.streak }} {{ entry.streak === 1 ? 'day' : 'days' }}
+          <template v-if="busted.length">(busted today)</template>
+        </span>
+        <span class="kid-card__today">
+          {{ isToday ? 'Today' : date }}: <strong>{{ formatMoney(entry.earned) }}</strong> / {{ formatMoney(entry.possible) }}
+        </span>
+      </div>
+    </header>
 
     <div class="kid-card__block">
       <p class="label">Savings goal{{ hasGoal && kid.goal.title ? `: ${kid.goal.title}` : '' }}</p>
       <template v-if="hasGoal">
         <div class="kid-card__goal">
           <div class="kid-card__block">
-            <div class="progress" role="progressbar" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress__bar" :style="{ width: `${progress}%` }"></div>
+            <div class="progress-wrap">
+              <div
+                class="progress"
+                :class="{ 'is-sparking': sparkActive }"
+                role="progressbar"
+                :aria-valuenow="Math.round(progress)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div
+                  class="progress__bar"
+                  :class="{ 'is-sparking': sparkActive }"
+                  :style="{ width: `${progress}%` }"
+                ></div>
+                <div
+                  v-if="sparkActive"
+                  :key="sparkKey"
+                  class="progress__shimmer"
+                  :style="{ width: `${progress}%` }"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div
+                v-if="sparkActive"
+                :key="sparkKey"
+                class="progress-sparks"
+                :style="{ left: `${progress}%` }"
+                aria-hidden="true"
+              >
+                <span class="progress-sparks__ring"></span>
+                <span class="progress-sparks__flash"></span>
+                <span class="progress-sparks__gain">+{{ formatMoney(sparkGain) }}</span>
+                <span v-for="n in 12" :key="n" class="progress-sparks__dot" :class="`progress-sparks__dot--${n}`"></span>
+              </div>
             </div>
             <p class="sub">
               {{ formatMoney(kid.goal.currentSaved) }} / {{ formatMoney(kid.goal.targetAmount) }} ·
@@ -102,8 +181,7 @@ const canToggle = (chore: DailyChoreInstance) =>
       <span class="sub">Cutoff: {{ formatClock(kid.screenTimeCutoff) }}</span>
     </div>
 
-    <div class="kid-card__block">
-      <p class="label">{{ isToday ? "Today's chores" : `Chores for ${date}` }}</p>
+    <div class="kid-card__block kid-card__chores">
       <ul v-if="open.length" class="chores">
         <li v-for="chore in open" :key="chore.id">
           <button
@@ -112,7 +190,7 @@ const canToggle = (chore: DailyChoreInstance) =>
             type="button"
             :disabled="!canToggle(chore)"
             :aria-pressed="chore.status !== 'pending'"
-            @click="emit('toggle', chore)"
+            @click="onChoreClick(chore, $event)"
           >
             <span class="chore__box" aria-hidden="true">{{ chore.status !== 'pending' ? '✓' : '' }}</span>
             <span class="chore__title">{{ chore.title }}</span>
@@ -130,5 +208,28 @@ const canToggle = (chore: DailyChoreInstance) =>
         <button v-if="manage" class="btn btn--small" type="button" @click="emit('unbust', chore)">Undo</button>
       </p>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-for="b in bursts"
+        :key="b.id"
+        class="emoji-burst"
+        :style="{ left: `${b.x}px`, top: `${b.y}px` }"
+        aria-hidden="true"
+      >
+        <span
+          v-for="(p, i) in b.particles"
+          :key="i"
+          class="emoji-burst__p"
+          :style="{
+            '--dx': `${p.dx}px`,
+            '--dy': `${p.dy}px`,
+            '--rot': `${p.rotate}deg`,
+            '--scale': p.scale,
+            animationDelay: `${p.delay}ms`,
+          }"
+        >{{ p.emoji }}</span>
+      </div>
+    </Teleport>
   </article>
 </template>

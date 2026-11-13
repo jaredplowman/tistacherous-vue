@@ -4,32 +4,31 @@
 // The kiosk is a wall tablet: big targets, no accidental selection or callouts.
 .kiosk {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 24px;
-  min-height: 100vh;
-  padding: 24px clamp(16px, 3vw, 40px) 32px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 16px;
+  height: 100dvh;
+  padding: 20px clamp(16px, 3vw, 40px) 20px;
+  overflow: hidden;
   background: $bg-deep;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 
-  &__head {
+  &__foot {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px $gap;
+    align-items: flex-end;
+    justify-content: flex-start;
   }
 
   &__clock {
     display: grid;
-    justify-items: end;
-    text-align: right;
+    justify-items: start;
+    text-align: left;
   }
 
   &__time {
-    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.03em;
@@ -37,78 +36,22 @@
 
   > main {
     display: grid;
-    gap: 24px;
-    align-content: start;
+    min-height: 0;
   }
 
   .kid-grid {
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    align-content: start;
-  }
-
-  .routines {
-    font-size: 1.15rem;
-
-    &__list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 10px;
-      padding: 0;
-      list-style: none;
-    }
-  }
-
-  .routine {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0 14px;
-    align-items: center;
-    padding: 12px 14px;
-    background: $bg-deep;
-    border: 1px solid $border;
-    border-radius: $radius;
-
-    &__box {
-      display: grid;
-      grid-row: 1 / span 2;
-      place-items: center;
-      width: 34px;
-      height: 34px;
-      font-size: 1.3rem;
-      color: $bg;
-      border: 2px solid $border;
-      border-radius: 8px;
-    }
-
-    &__title {
-      font-weight: 600;
-    }
-
-    &__meta {
-      font-size: 0.95rem;
-    }
-
-    &.is-done {
-      opacity: 0.7;
-
-      .routine__box {
-        background: c('green');
-        border-color: c('green');
-      }
-
-      .routine__title {
-        text-decoration: line-through;
-      }
-    }
-
-    &.is-late:not(.is-done) {
-      border-color: c('red');
-    }
+    height: 100%;
+    min-height: 0;
   }
 
   .kid-card {
-    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     padding: 20px;
+    overflow: hidden;
+    font-size: 1.1rem;
 
     &__head h3 {
       font-size: 1.8rem;
@@ -120,6 +63,13 @@
 
     &__today {
       font-size: 1.3rem;
+    }
+
+    &__chores {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
     }
   }
 
@@ -136,5 +86,58 @@
 
   .screen-gate {
     font-size: 1.15rem;
+  }
+
+  // Phone portrait: the wall-tablet sizes above are far too big, so tighten them up.
+  @media (max-width: 600px) and (orientation: portrait) and (min-resolution: 2dppx) {
+    gap: 10px;
+    padding: 12px 12px 10px;
+
+    &__time {
+      font-size: 1.6rem;
+    }
+
+    .kid-card {
+      padding: 12px;
+      font-size: 0.95rem;
+
+      &__head h3 {
+        font-size: 1.3rem;
+      }
+
+      &__strikes {
+        font-size: 1rem;
+      }
+
+      &__today {
+        font-size: 0.95rem;
+      }
+
+      &__img {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    .avatar {
+      --avatar-size: 40px;
+      width: 40px !important;
+      height: 40px !important;
+    }
+
+    .chore {
+      min-height: 44px;
+      font-size: 1rem;
+
+      &__box {
+        width: 26px;
+        height: 26px;
+        font-size: 1rem;
+      }
+    }
+
+    .screen-gate {
+      font-size: 0.95rem;
+    }
   }
 }

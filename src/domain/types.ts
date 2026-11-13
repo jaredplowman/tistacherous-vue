@@ -23,6 +23,8 @@ export interface KidProfile {
   id: string
   name: string
   avatarUrl?: string
+  cardColor?: string // '#rrggbb' card background; empty = default theme
+  nameColor?: string // '#rrggbb' name colour; ignored if illegible on the card
   sortOrder: number
   screenTimeCutoff: string // 'HH:mm', 24h
   troubleMeter: {
@@ -173,4 +175,64 @@ export interface LedgerTransaction {
   referenceId?: string
   notes?: string
   by?: string // display name of the parent who made the entry, when a person did
+}
+
+// ==========================================
+// 5. BENEFITS & CLAIMS
+// ==========================================
+
+export type BenefitStatus =
+  | 'draft'
+  | 'submitted_primary'
+  | 'denied_primary'
+  | 'submitted_secondary'
+  | 'denied_secondary'
+  | 'paid'
+  | 'closed'
+
+export interface BenefitAttachment {
+  name: string
+  path: string
+  url: string
+  size?: number
+}
+
+export interface BenefitType {
+  id: string
+  name: string
+  defaultBudget: number // yearly budget per adult member, default $500
+}
+
+export interface Caregiver {
+  id: string
+  name: string
+  typeId: string
+}
+
+export interface BenefitBudgetOverride {
+  id: string // `${memberEmail}_${typeId}`
+  memberEmail: string
+  typeId: string
+  limit: number
+}
+
+export interface BenefitClaim {
+  id: string
+  title: string
+  serviceDate: string // 'YYYY-MM-DD'
+  submittedDate?: string // 'YYYY-MM-DD'
+  patient: string
+  caregiverId: string
+  caregiverName: string
+  typeId: string
+  billedAmount: number
+  primaryMemberEmail: string
+  primaryPaid: number
+  secondaryMemberEmail: string
+  secondaryPaid: number
+  status: BenefitStatus
+  notes: string
+  receipt?: BenefitAttachment
+  primaryResponse?: BenefitAttachment
+  secondaryResponse?: BenefitAttachment
 }

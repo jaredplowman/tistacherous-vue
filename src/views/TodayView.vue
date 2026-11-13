@@ -4,19 +4,15 @@ import { RouterLink } from 'vue-router'
 import { member } from '@/lib/auth'
 import { useBillsStore } from '@/stores/bills'
 import { useChoresStore } from '@/stores/chores'
-import { useHouseholdStore } from '@/stores/household'
 import { useTasksStore } from '@/stores/tasks'
 import { attentionItems } from '@/domain/attention'
 import { amountLabel, dueLabel, isOverdue } from '@/domain/bills'
 import { sortStates, targetLabel } from '@/domain/tasks'
-import { openKioskDialog } from '@/app/kiosk'
-import KidSummaryCard from '@/features/kids/components/KidSummaryCard.vue'
 import { useForecast } from '@/features/weather/composables/useForecast'
 import { usePlace } from '@/features/weather/composables/usePlace'
 import { describe } from '@/features/weather/weather'
 import { degWhole } from '@/features/weather/format'
 
-const household = useHouseholdStore()
 const chores = useChoresStore()
 const bills = useBillsStore()
 const tasks = useTasksStore()
@@ -80,18 +76,6 @@ const weather = computed(() =>
       <p v-else class="sub">Nothing needs you right now. 🎉</p>
     </section>
 
-    <section class="panel" aria-labelledby="kids-title">
-      <div class="panel__head">
-        <h2 id="kids-title">Kids today</h2>
-      </div>
-      <div v-if="household.kids.length" class="kid-grid">
-        <KidSummaryCard v-for="entry in chores.board" :key="entry.kid.id" :entry="entry" />
-      </div>
-      <div v-else class="card empty">
-        <p class="sub">No kids yet. <RouterLink to="/settings">Add them in Settings</RouterLink> to see chores and goals here.</p>
-      </div>
-    </section>
-
     <div class="today__cols">
       <section class="card panel" aria-labelledby="tasks-title">
         <div class="panel__head panel__head--row">
@@ -139,16 +123,5 @@ const weather = computed(() =>
         </p>
       </section>
     </div>
-
-    <section class="panel" aria-labelledby="actions-title">
-      <div class="panel__head">
-        <h2 id="actions-title">Quick actions</h2>
-      </div>
-      <div class="today__actions">
-        <button class="btn btn--accent" type="button" @click="openKioskDialog">Launch kiosk</button>
-        <RouterLink class="btn" to="/settings">Manage kids &amp; members</RouterLink>
-        <RouterLink class="btn" to="/weather">Historical weather</RouterLink>
-      </div>
-    </section>
   </main>
 </template>

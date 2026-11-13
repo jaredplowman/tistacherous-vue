@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { authError, authReady, isAllowed, signInWithGoogle, signOutUser, user } from '@/lib/auth'
 import { useBillsStore } from '@/stores/bills'
+import { useBenefitsStore } from '@/stores/benefits'
 import { useChoresStore } from '@/stores/chores'
 import { useHouseholdStore } from '@/stores/household'
 import { useTasksStore } from '@/stores/tasks'
@@ -15,6 +16,7 @@ const route = useRoute()
 const household = useHouseholdStore()
 const chores = useChoresStore()
 const bills = useBillsStore()
+const benefits = useBenefitsStore()
 const tasks = useTasksStore()
 const signInError = ref('')
 
@@ -25,9 +27,11 @@ watch(
       household.start()
       chores.start()
       bills.start()
+      benefits.start()
       tasks.start()
     } else {
       tasks.stop()
+      benefits.stop()
       bills.stop()
       chores.stop()
       household.stop()

@@ -9,9 +9,10 @@ of its sections.
 | Path           | Page                                                       |
 | -------------- | ---------------------------------------------------------- |
 | `/`            | Today: daily briefing                                      |
-| `/kids`        | Kids: board, audits, ledger and payouts, chore management  |
+| `/kids`        | Kids: board, audits, balances and payouts, ledger, chores  |
 | `/bills`       | Bills: monthly tracker and recurring bills                 |
 | `/tasks`       | Adult tasks: weekly routines, short-term, projects         |
+| `/benefits`    | Benefit claims, PDF receipts/EOBs, caregiver budgets       |
 | `/weather`     | Historical weather (`/historical-weather` redirects here)  |
 | `/settings`    | Household name, members, kids                              |
 | `/kiosk`       | Wall-tablet kids board: no navigation, leave by changing the URL |
@@ -45,11 +46,14 @@ of its sections.
   chore done and none busted. Days with no chores scheduled are skipped.
 - **Order:** chores have a `sortOrder` (arrows in Kids → Chores) used by the manage list, the board and the
   kiosk. Kids are ordered the same way in Settings → Kids.
-- **Strikes:** *Add strike* is on each board card and in Kids → Audits → Accounts. The strikes needed and the
+- **Strikes:** *Add strike* is on each board card and in Kids → Balances. The strikes needed and the
   penalty are set per kid in Settings → Kids.
 
 ## Kid pictures and goals
 
+- **Kiosk emoji burst:** tapping a pending chore on the kiosk bursts into random emojis. Un-checking is still a tap.
+- Settings → Kids also sets each kid's card background and name colour. Other text on the card switches between
+  dark and light automatically for contrast, and a name colour that would be hard to read is ignored.
 - Settings → Kids sets each kid's picture, savings goal name, target amount and goal picture. Pictures are
   uploaded from a file (or the camera on a phone).
 - Pictures are stored as text on the kid's document, which can't pass 1 MB and holds two pictures. So a file up
