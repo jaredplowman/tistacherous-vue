@@ -76,7 +76,7 @@ const summary = computed(() => {
           {{ formatMoney(summary.outOfPocketYtd) }} out of pocket
         </p>
       </div>
-      <button v-if="tab === 'claims'" class="btn btn--accent" type="button" @click="editing = 'new'">
+      <button v-if="tab === 'claims' && !editing" class="btn btn--accent" type="button" @click="editing = 'new'">
         + New claim
       </button>
     </header>

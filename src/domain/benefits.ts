@@ -122,3 +122,82 @@ export function calculateMemberBudgets(params: {
 export function sortClaims(claims: BenefitClaim[]): BenefitClaim[] {
   return [...claims].sort((a, b) => b.serviceDate.localeCompare(a.serviceDate) || a.title.localeCompare(b.title))
 }
+
+function samePersonName(a: string, b: string): boolean {
+  const x = a.trim().toLowerCase()
+  const y = b.trim().toLowerCase()
+  if (!x || !y) return false
+  return x === y || x.includes(y) || y.includes(x)
+}
+
+export interface ScannedLineItem {
+  serviceDate: string
+  description: string
+  patient: string
+  billedAmount: number | null
+  paidAmount: number | null
+}
+
+// When an EOB bundles multiple claims on one PDF, pick the line item matching this claim's date/amount.
+export function pickResponseLineItem(
+  lineItems: ScannedLineItem[],
+  claim: { serviceDate: string; billedAmount: number },
+): ScannedLineItem | null {
+  if (!lineItems.length) return null
+  const amountMatches = (item: ScannedLineItem) =>
+    claim.billedAmount > 0 && item.billedAmount != null && Math.abs(item.billedAmount - claim.billedAmount) <= 0.01
+  const dateMatches = (item: ScannedLineItem) =>
+    !!claim.serviceDate && !!item.serviceDate && item.serviceDate === claim.serviceDate
+
+  return (
+    lineItems.find((i) => dateMatches(i) && amountMatches(i)) ??
+    lineItems.find((i) => dateMatches(i)) ??
+    lineItems.find((i) => amountMatches(i)) ??
+    null
+  )
+}
+
+export function responseMismatchWarnings(params: {
+  claim: {
+    serviceDate: string
+    billedAmount: number
+    patient: string
+    selectedPlanName: string
+    otherPlanName: string
+  }
+  scanned: {
+    serviceDate: string
+    billedAmount: number | null
+    patient: string
+    planHolder: string
+  }
+}): string[] {
+  const { claim, scanned } = params
+  const warnings: string[] = []
+
+  if (claim.serviceDate && scanned.serviceDate && claim.serviceDate !== scanned.serviceDate) {
+    warnings.push(`Service date on PDF (${scanned.serviceDate}) differs from claim (${claim.serviceDate}).`)
+  }
+  if (
+    claim.billedAmount > 0 &&
+    scanned.billedAmount != null &&
+    Math.abs(claim.billedAmount - scanned.billedAmount) > 0.01
+  ) {
+    warnings.push(
+      `Billed amount on PDF ($${scanned.billedAmount.toFixed(2)}) differs from claim ($${claim.billedAmount.toFixed(2)}).`,
+    )
+  }
+  if (claim.patient && scanned.patient && !samePersonName(claim.patient, scanned.patient)) {
+    warnings.push(`Patient on PDF (${scanned.patient}) differs from claim (${claim.patient}).`)
+  }
+  if (
+    scanned.planHolder &&
+    claim.otherPlanName &&
+    samePersonName(scanned.planHolder, claim.otherPlanName) &&
+    !samePersonName(scanned.planHolder, claim.selectedPlanName)
+  ) {
+    warnings.push(`Plan holder on PDF (${scanned.planHolder}) looks like ${claim.otherPlanName}, not ${claim.selectedPlanName}.`)
+  }
+
+  return warnings
+}

@@ -12,6 +12,7 @@ of its sections.
 | `/kids`        | Kids: board, audits, balances and payouts, ledger, chores  |
 | `/bills`       | Bills: monthly tracker and recurring bills                 |
 | `/tasks`       | Adult tasks: weekly routines, short-term, projects         |
+| `/schedule`    | Rolling 7/14-day family schedule from Google Calendar      |
 | `/benefits`    | Benefit claims, PDF receipts/EOBs, caregiver budgets       |
 | `/weather`     | Historical weather (`/historical-weather` redirects here)  |
 | `/settings`    | Household name, members, kids                              |

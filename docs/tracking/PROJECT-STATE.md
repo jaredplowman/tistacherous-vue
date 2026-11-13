@@ -38,7 +38,7 @@ are built and deployed.
 - Access is decided by member docs at `households/main/members/{lowercase email}` (`role`: owner|parent),
   enforced by `firestore.rules`.
 - Navigation: desktop sidebar, tablet icon rail, phone bottom tabs.
-  Routes: `/`, `/kids` (tabs via `?tab=`: board, audits, balances, ledger, chores), `/bills`, `/tasks`, `/benefits`,
+  Routes: `/`, `/kids` (tabs via `?tab=`: board, audits, balances, ledger, chores), `/bills`, `/tasks`, `/schedule`, `/benefits`,
   `/weather`, `/settings`, `/kiosk`.
 - Chores:
   - Pass sets `verified`. Busted deducts value x `penaltyMultiplier`, clamped at the balance.

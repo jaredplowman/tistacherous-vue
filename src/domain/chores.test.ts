@@ -61,6 +61,16 @@ describe('visibleInstances', () => {
   it('keeps completed work even when the chore is gone', () => {
     expect(visibleInstances([inst({ status: 'completed' })], [], 'a')).toHaveLength(1)
   })
+
+  it('uses the live chore title for pending and completed instances', () => {
+    const updated = chore({ title: '🛏️ Make bed' })
+    const result = visibleInstances(
+      [inst({ title: 'Make bed', status: 'pending' }), inst({ id: '2', title: 'Make bed', status: 'completed' })],
+      [updated],
+      'a',
+    )
+    expect(result.map((r) => r.title)).toEqual(['🛏️ Make bed', '🛏️ Make bed'])
+  })
 })
 
 describe('screenStatus', () => {

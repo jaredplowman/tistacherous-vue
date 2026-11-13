@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import {
   BENEFIT_STATUSES,
   claimCoverage,
   DEFAULT_TYPE_BUDGET,
   detectCaregiverInText,
   matchCareTypeByName,
+  pickResponseLineItem,
+  responseMismatchWarnings,
   suggestCaregiverName,
 } from '@/domain/benefits'
 import { formatMoney } from '@/domain/kids'
@@ -52,6 +54,9 @@ const primaryResponse = ref<BenefitAttachment | undefined>(props.claim?.primaryR
 const secondaryResponse = ref<BenefitAttachment | undefined>(props.claim?.secondaryResponse)
 
 const detectionNote = ref('')
+const mismatchWarnings = ref<string[]>([])
+const scanning = ref(false)
+let scanAbort: AbortController | null = null
 const showNewCaregiver = ref(false)
 const newCaregiverName = ref('')
 const newCaregiverTypeId = ref('')
@@ -80,15 +85,73 @@ function onCaregiverSelect() {
   if (found) typeId.value = found.typeId
 }
 
-async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
-  detectionNote.value = 'Scanning PDF…'
-  const { data: scanned, error: aiError } = await scanBenefitPdf(
-    file,
-    slot,
-    benefits.types.map((t) => t.name),
-  )
+function cancelScan() {
+  scanAbort?.abort()
+  scanAbort = null
+  scanning.value = false
+  detectionNote.value = 'Scan cancelled — you can fill details in manually.'
+}
 
-  if (scanned) {
+onUnmounted(() => scanAbort?.abort())
+
+async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
+  scanAbort?.abort()
+  const controller = new AbortController()
+  scanAbort = controller
+  scanning.value = true
+  detectionNote.value = ''
+  if (slot !== 'receipt') mismatchWarnings.value = []
+
+  try {
+    const { data: scanned, error: aiError, aborted } = await scanBenefitPdf(
+      file,
+      slot,
+      benefits.types.map((t) => t.name),
+      controller.signal,
+    )
+    if (aborted || controller.signal.aborted) return
+
+    if (scanned) {
+    let effectivePaid = scanned.paidAmount
+    let matchedLineNote = ''
+
+    if (slot !== 'receipt') {
+      const matchedLine = pickResponseLineItem(scanned.lineItems, {
+        serviceDate: serviceDate.value,
+        billedAmount: Number(billedAmount.value) || 0,
+      })
+      const targetForCheck = matchedLine
+        ? {
+            serviceDate: matchedLine.serviceDate || scanned.serviceDate,
+            billedAmount: matchedLine.billedAmount ?? scanned.billedAmount,
+            patient: matchedLine.patient || scanned.patient,
+            planHolder: scanned.planHolder,
+          }
+        : scanned
+
+      if (matchedLine) {
+        effectivePaid = matchedLine.paidAmount ?? scanned.paidAmount
+        if (scanned.lineItems.length > 1) {
+          matchedLineNote = `Matched ${matchedLine.serviceDate} line item from ${scanned.lineItems.length} claims on EOB. `
+        }
+      }
+
+      const selectedEmail = slot === 'primaryResponse' ? primaryMemberEmail.value : secondaryMemberEmail.value
+      const otherEmail = slot === 'primaryResponse' ? secondaryMemberEmail.value : primaryMemberEmail.value
+      const memberName = (email: string) =>
+        household.members.find((m) => m.email === email)?.displayName ?? ''
+      mismatchWarnings.value = responseMismatchWarnings({
+        claim: {
+          serviceDate: serviceDate.value,
+          billedAmount: Number(billedAmount.value) || 0,
+          patient: patient.value,
+          selectedPlanName: memberName(selectedEmail),
+          otherPlanName: memberName(otherEmail),
+        },
+        scanned: targetForCheck,
+      })
+    }
+
     const fallbackTitle = scanned.careType || scanned.caregiverName ? `${scanned.careType || scanned.caregiverName} visit` : ''
     if (!title.value.trim() && (scanned.title || fallbackTitle)) title.value = scanned.title || fallbackTitle
     if (scanned.serviceDate && (isNew || !serviceDate.value || serviceDate.value === chores.today)) {
@@ -97,12 +160,27 @@ async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
     if (!patient.value.trim() && scanned.patient) patient.value = scanned.patient
     if (!billedAmount.value && scanned.billedAmount != null) billedAmount.value = scanned.billedAmount
 
+    let responseSummary = ''
     if (slot === 'primaryResponse') {
-      if (!primaryPaid.value && scanned.paidAmount != null) primaryPaid.value = scanned.paidAmount
-      if (scanned.denied) status.value = 'denied_primary'
+      if (!primaryPaid.value && effectivePaid != null) primaryPaid.value = effectivePaid
+      if (scanned.denied) {
+        status.value = 'denied_primary'
+        responseSummary = 'Primary claim denied.'
+      } else if (effectivePaid != null) {
+        const covered = (Number(primaryPaid.value) || 0) + (Number(secondaryPaid.value) || 0)
+        if (billedAmount.value > 0 && covered >= billedAmount.value) status.value = 'paid'
+        else if (status.value === 'draft' || status.value === 'submitted_primary') status.value = 'submitted_secondary'
+        responseSummary = `${matchedLineNote}Primary covered $${effectivePaid.toFixed(2)}.`
+      }
     } else if (slot === 'secondaryResponse') {
-      if (!secondaryPaid.value && scanned.paidAmount != null) secondaryPaid.value = scanned.paidAmount
-      if (scanned.denied) status.value = 'denied_secondary'
+      if (!secondaryPaid.value && effectivePaid != null) secondaryPaid.value = effectivePaid
+      if (scanned.denied) {
+        status.value = 'denied_secondary'
+        responseSummary = 'Secondary claim denied.'
+      } else if (effectivePaid != null) {
+        status.value = 'paid'
+        responseSummary = `${matchedLineNote}Secondary covered $${effectivePaid.toFixed(2)}.`
+      }
     }
 
     if (scanned.caregiverName) {
@@ -111,7 +189,7 @@ async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
         caregiverId.value = matched.id
         typeId.value = matched.typeId
         showNewCaregiver.value = false
-        detectionNote.value = `Scanned PDF — matched caregiver: ${matched.name}`
+        detectionNote.value = `Scanned PDF — ${responseSummary ? `${responseSummary} ` : ''}Matched caregiver: ${matched.name}`
         return
       }
       if (!caregiverId.value) {
@@ -126,11 +204,11 @@ async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
           newTypeBudget.value = DEFAULT_TYPE_BUDGET
         }
         showNewCaregiver.value = true
-        detectionNote.value = `Scanned PDF — "${scanned.caregiverName}" is new. Confirm details below to add it.`
+        detectionNote.value = `Scanned PDF — ${responseSummary ? `${responseSummary} ` : ''}"${scanned.caregiverName}" is new. Confirm details below to add it.`
         return
       }
     }
-    detectionNote.value = 'Scanned PDF details applied.'
+    detectionNote.value = responseSummary ? `Scanned PDF — ${responseSummary}` : 'Scanned PDF details applied.'
     return
   }
 
@@ -156,6 +234,12 @@ async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
     detectionNote.value = `${prefix}No existing caregiver matched this PDF — add it below if needed.`
   } else {
     detectionNote.value = prefix.trim()
+  }
+  } finally {
+    if (scanAbort === controller) {
+      scanAbort = null
+      scanning.value = false
+    }
   }
 }
 
@@ -256,49 +340,28 @@ async function remove() {
       <button class="btn btn--small" type="button" @click="emit('done')">Close</button>
     </div>
 
-    <div class="form-row">
-      <label class="field">
-        <span>Title</span>
-        <input v-model="title" class="input" required maxlength="100" placeholder="e.g. Dental cleaning — Sofia" />
-      </label>
-      <label class="field">
-        <span>Service date</span>
-        <input v-model="serviceDate" class="input" type="date" required />
-      </label>
-      <label class="field">
-        <span>Patient</span>
-        <input v-model="patient" class="input" list="benefit-patients" maxlength="60" placeholder="Who was it for?" />
-        <datalist id="benefit-patients">
-          <option v-for="person in patientSuggestions" :key="person" :value="person" />
-        </datalist>
-      </label>
+    <div v-if="scanning" class="benefit-scan-banner" role="status" aria-live="polite">
+      <span class="benefit-scan-banner__dot" aria-hidden="true"></span>
+      <span>Scanning PDF with AI…</span>
+      <button class="btn btn--small" type="button" @click="cancelScan">Cancel scan</button>
     </div>
 
-    <div class="benefit-form__pdfs">
-      <PdfUploadField
-        v-model="receipt"
-        :claim-id="claimId"
-        slot-name="receipt"
-        label="Receipt PDF"
-        @uploaded="onPdfUploaded"
-      />
-      <PdfUploadField
-        v-model="primaryResponse"
-        :claim-id="claimId"
-        slot-name="primaryResponse"
-        label="Primary response PDF"
-        @uploaded="onPdfUploaded"
-      />
-      <PdfUploadField
-        v-model="secondaryResponse"
-        :claim-id="claimId"
-        slot-name="secondaryResponse"
-        label="Secondary response PDF"
-        @uploaded="onPdfUploaded"
-      />
-    </div>
+    <fieldset class="benefit-form__fields" :disabled="scanning || busy">
+    <PdfUploadField
+      v-model="receipt"
+      :claim-id="claimId"
+      slot-name="receipt"
+      label="Receipt PDF (auto-fills details below)"
+      @uploaded="onPdfUploaded"
+    />
 
     <p v-if="detectionNote" class="sub">{{ detectionNote }}</p>
+    <div v-if="mismatchWarnings.length" class="card is-error benefit-warnings" role="alert">
+      <strong>Check uploaded response PDF:</strong>
+      <ul>
+        <li v-for="(w, i) in mismatchWarnings" :key="i">{{ w }}</li>
+      </ul>
+    </div>
 
     <div v-if="showNewCaregiver" class="benefit-caregiver-prompt">
       <div class="panel__head panel__head--row">
@@ -342,6 +405,24 @@ async function remove() {
 
     <div class="form-row">
       <label class="field">
+        <span>Title</span>
+        <input v-model="title" class="input" required maxlength="100" placeholder="e.g. Dental cleaning — Sofia" />
+      </label>
+      <label class="field">
+        <span>Service date</span>
+        <input v-model="serviceDate" class="input" type="date" required />
+      </label>
+      <label class="field">
+        <span>Patient</span>
+        <input v-model="patient" class="input" list="benefit-patients" maxlength="60" placeholder="Who was it for?" />
+        <datalist id="benefit-patients">
+          <option v-for="person in patientSuggestions" :key="person" :value="person" />
+        </datalist>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label class="field">
         <span>Caregiver</span>
         <div class="benefit-form__caregiver-row">
           <select v-model="caregiverId" class="input" @change="onCaregiverSelect">
@@ -370,40 +451,67 @@ async function remove() {
       </label>
     </div>
 
-    <div class="form-row">
+    <div class="benefit-form__billed">
       <label class="field">
         <span>Billed amount ($)</span>
         <input v-model.number="billedAmount" class="input" type="number" min="0" step="0.01" />
       </label>
-      <label class="field">
-        <span>Primary plan</span>
-        <select v-model="primaryMemberEmail" class="input">
-          <option value="">— None —</option>
-          <option v-for="m in household.members" :key="m.email" :value="m.email">{{ m.displayName }}</option>
-        </select>
-      </label>
-      <label class="field">
-        <span>Primary paid ($)</span>
-        <input v-model.number="primaryPaid" class="input" type="number" min="0" step="0.01" />
-      </label>
-      <label class="field">
-        <span>Secondary plan</span>
-        <select v-model="secondaryMemberEmail" class="input">
-          <option value="">— None —</option>
-          <option v-for="m in household.members" :key="m.email" :value="m.email">{{ m.displayName }}</option>
-        </select>
-      </label>
-      <label class="field">
-        <span>Secondary paid ($)</span>
-        <input v-model.number="secondaryPaid" class="input" type="number" min="0" step="0.01" />
-      </label>
+      <p class="benefit-form__coverage">
+        <span>Covered: <strong>{{ formatMoney(coverage.totalCovered) }}</strong></span>
+        <span>Out of pocket: <strong>{{ formatMoney(coverage.outOfPocket) }}</strong></span>
+        <span v-if="coverage.isFullyCovered" class="badge badge--good">Fully covered</span>
+      </p>
     </div>
 
-    <p class="benefit-form__coverage">
-      <span>Covered: <strong>{{ formatMoney(coverage.totalCovered) }}</strong></span>
-      <span>Out of pocket: <strong>{{ formatMoney(coverage.outOfPocket) }}</strong></span>
-      <span v-if="coverage.isFullyCovered" class="badge badge--good">Fully covered</span>
-    </p>
+    <div class="benefit-form__plans">
+      <div class="benefit-plan-box">
+        <span class="label">Primary provider</span>
+        <div class="form-row">
+          <label class="field">
+            <span>Plan</span>
+            <select v-model="primaryMemberEmail" class="input">
+              <option value="">— None —</option>
+              <option v-for="m in household.members" :key="m.email" :value="m.email">{{ m.displayName }}</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Paid ($)</span>
+            <input v-model.number="primaryPaid" class="input" type="number" min="0" step="0.01" />
+          </label>
+        </div>
+        <PdfUploadField
+          v-model="primaryResponse"
+          :claim-id="claimId"
+          slot-name="primaryResponse"
+          label="Primary response PDF"
+          @uploaded="onPdfUploaded"
+        />
+      </div>
+
+      <div class="benefit-plan-box">
+        <span class="label">Secondary provider</span>
+        <div class="form-row">
+          <label class="field">
+            <span>Plan</span>
+            <select v-model="secondaryMemberEmail" class="input">
+              <option value="">— None —</option>
+              <option v-for="m in household.members" :key="m.email" :value="m.email">{{ m.displayName }}</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Paid ($)</span>
+            <input v-model.number="secondaryPaid" class="input" type="number" min="0" step="0.01" />
+          </label>
+        </div>
+        <PdfUploadField
+          v-model="secondaryResponse"
+          :claim-id="claimId"
+          slot-name="secondaryResponse"
+          label="Secondary response PDF"
+          @uploaded="onPdfUploaded"
+        />
+      </div>
+    </div>
 
     <label class="field">
       <span>Notes</span>
@@ -419,5 +527,6 @@ async function remove() {
         {{ busy ? 'Saving…' : 'Save claim' }}
       </button>
     </div>
+    </fieldset>
   </form>
 </template>

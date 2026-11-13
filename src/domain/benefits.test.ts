@@ -4,6 +4,8 @@ import {
   claimCoverage,
   detectCaregiverInText,
   matchCareTypeByName,
+  pickResponseLineItem,
+  responseMismatchWarnings,
   sortClaims,
   suggestCaregiverName,
 } from './benefits'
@@ -128,5 +130,52 @@ describe('benefits', () => {
       { serviceDate: '2026-05-01', title: 'New' },
     ] as BenefitClaim[]
     expect(sortClaims(claims).map((c) => c.title)).toEqual(['New', 'Old'])
+  })
+
+  it('flags mismatched dates, billed amounts, patients, and plan holders on response PDFs', () => {
+    const warnings = responseMismatchWarnings({
+      claim: {
+        serviceDate: '2026-10-12',
+        billedAmount: 115,
+        patient: 'Jared Plowman',
+        selectedPlanName: 'Jared',
+        otherPlanName: 'Jess',
+      },
+      scanned: {
+        serviceDate: '2026-10-19',
+        billedAmount: 150,
+        patient: 'Sofia Plowman',
+        planHolder: 'Jess Plowman',
+      },
+    })
+    expect(warnings).toHaveLength(4)
+
+    expect(
+      responseMismatchWarnings({
+        claim: {
+          serviceDate: '2026-10-12',
+          billedAmount: 115,
+          patient: 'Jared Plowman',
+          selectedPlanName: 'Jared',
+          otherPlanName: 'Jess',
+        },
+        scanned: {
+          serviceDate: '2026-10-12',
+          billedAmount: 115,
+          patient: 'Jared',
+          planHolder: 'Jared Plowman',
+        },
+      }),
+    ).toEqual([])
+  })
+
+  it('picks the matching line item from a multi-claim EOB PDF', () => {
+    const items = [
+      { serviceDate: '2026-10-12', description: 'Physiotherapist', patient: 'Jared', billedAmount: 115, paidAmount: 115 },
+      { serviceDate: '2026-10-21', description: 'Physiotherapist', patient: 'Jared', billedAmount: 95, paidAmount: 95 },
+    ]
+    expect(pickResponseLineItem(items, { serviceDate: '2026-10-12', billedAmount: 115 })?.paidAmount).toBe(115)
+    expect(pickResponseLineItem(items, { serviceDate: '2026-10-21', billedAmount: 95 })?.paidAmount).toBe(95)
+    expect(pickResponseLineItem(items, { serviceDate: '2026-11-01', billedAmount: 50 })).toBeNull()
   })
 })

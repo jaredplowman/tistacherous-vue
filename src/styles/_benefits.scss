@@ -22,9 +22,34 @@
   display: grid;
   gap: 14px;
 
-  &__pdfs {
+  &__fields {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    &:disabled {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+  }
+
+  &__billed {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+    align-items: end;
+    gap: 12px;
+
+    @media (max-width: 640px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 12px;
   }
 
@@ -57,6 +82,34 @@
   }
 }
 
+.benefit-scan-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  background: color-mix(in srgb, #{$accent} 14%, $bg-deep);
+  border: 1px solid $accent;
+  border-radius: $radius;
+
+  > span:nth-child(2) {
+    flex: 1;
+  }
+
+  &__dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid $accent;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: benefit-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes benefit-spin {
+  to { transform: rotate(360deg); }
+}
+
 .benefit-caregiver-prompt {
   display: grid;
   gap: 10px;
@@ -66,9 +119,20 @@
   border-radius: $radius;
 }
 
+.benefit-plan-box {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  background: $bg-deep;
+  border: 1px solid $border;
+  border-radius: $radius;
+}
+
 .pdf-field {
   display: grid;
   gap: 6px;
+  min-width: 0;
   padding: 10px 12px;
   background: $bg-deep;
   border: 1px solid $border;
@@ -79,6 +143,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
 
   &__link {

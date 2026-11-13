@@ -1,4 +1,4 @@
-export type NavIcon = 'today' | 'kids' | 'bills' | 'tasks' | 'benefits' | 'weather' | 'settings' | 'more' | 'kiosk' | 'signout'
+export type NavIcon = 'today' | 'kids' | 'bills' | 'tasks' | 'schedule' | 'benefits' | 'weather' | 'settings' | 'more' | 'kiosk' | 'signout'
 
 export interface NavItem {
   to: string
@@ -12,6 +12,7 @@ export const primaryNav: NavItem[] = [
   { to: '/kids', label: 'Kids', icon: 'kids' },
   { to: '/bills', label: 'Bills', icon: 'bills' },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
+  { to: '/schedule', label: 'Schedule', icon: 'schedule' },
 ]
 
 // Secondary sections: the sidebar's second group and the phone "More" sheet.

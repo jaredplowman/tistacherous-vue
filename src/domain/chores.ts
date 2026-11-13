@@ -77,12 +77,13 @@ export function missingInstances(
 
 // A chore that was switched off, deleted or unassigned stops showing once it is no longer
 // owed. Anything already checked off or audited stays, because money moved for it.
+// Any instance whose chore definition still exists uses the live title so edits (e.g. emojis) show up right away.
 export function visibleInstances(instances: DailyChoreInstance[], chores: ChoreDefinition[], kidId: string) {
   const byId = new Map(chores.map((c) => [c.id, c]))
-  return instances.filter((i) => {
-    if (i.status !== 'pending') return true
+  return instances.flatMap((i) => {
     const chore = byId.get(i.choreDefinitionId)
-    return !!chore && chore.active && chore.assignedKidIds.includes(kidId)
+    if (i.status === 'pending' && (!chore || !chore.active || !chore.assignedKidIds.includes(kidId))) return []
+    return [chore && chore.title !== i.title ? { ...i, title: chore.title } : i]
   })
 }
 
