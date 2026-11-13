@@ -19,13 +19,33 @@ const scanSchema = Schema.object({
     caregiverName: Schema.string({ description: 'Clinic, practitioner, or pharmacy name. Empty string if unknown.' }),
     careType: Schema.string({ description: 'Short category like Dental, Physio, Vision, Massage, Chiropractic, Pharmacy. Empty string if unknown.' }),
     patient: Schema.string({ description: 'Patient or person who received the service. Empty string if unknown.' }),
-    serviceDate: Schema.string({ description: 'Service date in YYYY-MM-DD format. Empty string if unknown.' }),
-    title: Schema.string({ description: 'Short 2-5 word summary of the service (e.g. Dental cleaning, Physio visit). Empty string if unknown.' }),
-    billedAmount: Schema.number({ description: 'Total billed or receipt amount in dollars.', nullable: true }),
+    serviceDate: Schema.string({ description: 'Date of service, treatment, or receipt in YYYY-MM-DD format. Empty string if unknown.' }),
+    title: Schema.string({ description: 'Short 2-5 word summary of the service (e.g. Dental cleaning, Physio visit, Eye exam). Always provide a best-guess summary if any service or clinic is visible.' }),
+    billedAmount: Schema.number({ description: 'Total billed, charged, or receipt total amount in dollars (numeric, no $ sign).', nullable: true }),
     paidAmount: Schema.number({ description: 'Amount paid/reimbursed by the insurance provider in dollars (for EOB/response PDFs).', nullable: true }),
     denied: Schema.boolean({ description: 'True if the insurance provider response explicitly denied/declined the claim.' }),
   },
 })
+
+function normalizeDate(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toISOString().slice(0, 10)
+}
+
+function normalizeMoney(raw: unknown): number | null {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.round(raw * 100) / 100
+  if (typeof raw === 'string') {
+    const cleaned = raw.replace(/[$,\s]/g, '')
+    const num = Number(cleaned)
+    if (cleaned && Number.isFinite(num)) return Math.round(num * 100) / 100
+  }
+  return null
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -72,21 +92,19 @@ export async function scanBenefitPdf(
 
     const result = await model.generateContent([
       { type: 'inlineData', inlineData: { data: base64, mimeType: 'application/pdf' } },
-      `Extract the benefit claim details from this PDF. ${roleHint} ${typesHint} Use empty string or null for any field not clearly present.`,
+      `Extract the benefit claim details from this PDF. ${roleHint} ${typesHint} Convert any service/treatment/receipt date to YYYY-MM-DD. Extract the total billed/charged dollar amount as billedAmount, and a short 2-5 word title describing the service. Use empty string or null only if a field is completely absent.`,
     ])
 
-    const parsed = JSON.parse(result.response.text()) as Partial<ScannedBenefitPdf>
+    const parsed = JSON.parse(result.response.text()) as Record<string, unknown>
     return {
       data: {
         caregiverName: typeof parsed.caregiverName === 'string' ? parsed.caregiverName.trim() : '',
         careType: typeof parsed.careType === 'string' ? parsed.careType.trim() : '',
         patient: typeof parsed.patient === 'string' ? parsed.patient.trim() : '',
-        serviceDate: typeof parsed.serviceDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.serviceDate.trim())
-          ? parsed.serviceDate.trim()
-          : '',
+        serviceDate: normalizeDate(parsed.serviceDate),
         title: typeof parsed.title === 'string' ? parsed.title.trim() : '',
-        billedAmount: typeof parsed.billedAmount === 'number' && Number.isFinite(parsed.billedAmount) ? parsed.billedAmount : null,
-        paidAmount: typeof parsed.paidAmount === 'number' && Number.isFinite(parsed.paidAmount) ? parsed.paidAmount : null,
+        billedAmount: normalizeMoney(parsed.billedAmount),
+        paidAmount: normalizeMoney(parsed.paidAmount),
         denied: parsed.denied === true,
       },
     }

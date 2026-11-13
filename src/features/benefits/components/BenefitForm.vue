@@ -89,8 +89,11 @@ async function onPdfUploaded(file: File, slot: BenefitPdfSlot) {
   )
 
   if (scanned) {
-    if (!title.value.trim() && scanned.title) title.value = scanned.title
-    if (scanned.serviceDate && (isNew || !serviceDate.value)) serviceDate.value = scanned.serviceDate
+    const fallbackTitle = scanned.careType || scanned.caregiverName ? `${scanned.careType || scanned.caregiverName} visit` : ''
+    if (!title.value.trim() && (scanned.title || fallbackTitle)) title.value = scanned.title || fallbackTitle
+    if (scanned.serviceDate && (isNew || !serviceDate.value || serviceDate.value === chores.today)) {
+      serviceDate.value = scanned.serviceDate
+    }
     if (!patient.value.trim() && scanned.patient) patient.value = scanned.patient
     if (!billedAmount.value && scanned.billedAmount != null) billedAmount.value = scanned.billedAmount
 
